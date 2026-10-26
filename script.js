@@ -1,92 +1,111 @@
-
 "use strict";
 
-document.addEventListener("DOMContentLoaded", () => {
-  const menuToggle = document.getElementById("menu-toggle");
-  const navLinks = document.getElementById("nav-links");
+// Mobile navigation
+const menuToggle = document.getElementById("menuToggle");
+const navLinks = document.getElementById("navLinks");
 
-  // Mobile navigation
-  function closeMenu() {
-    if (!menuToggle || !navLinks) return;
+if (menuToggle && navLinks) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = navLinks.classList.toggle("open");
 
-    navLinks.classList.remove("is-open");
-    menuToggle.setAttribute("aria-expanded", "false");
-    menuToggle.setAttribute("aria-label", "Open navigation");
-  }
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen ? "Close navigation menu" : "Open navigation menu"
+    );
+  });
 
-  if (menuToggle && navLinks) {
-    menuToggle.addEventListener("click", () => {
-      const isOpen = navLinks.classList.toggle("is-open");
-
-      menuToggle.setAttribute("aria-expanded", String(isOpen));
-      menuToggle.setAttribute(
-        "aria-label",
-        isOpen ? "Close navigation" : "Open navigation"
-      );
+  // Close the menu after selecting a navigation link
+  navLinks.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Open navigation menu");
     });
+  });
 
-    navLinks.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", closeMenu);
-    });
+  // Close the menu when clicking outside it
+  document.addEventListener("click", (event) => {
+    const clickedInsideMenu = navLinks.contains(event.target);
+    const clickedToggle = menuToggle.contains(event.target);
 
-    document.addEventListener("click", (event) => {
-      if (
-        !navLinks.contains(event.target) &&
-        !menuToggle.contains(event.target)
-      ) {
-        closeMenu();
-      }
-    });
+    if (!clickedInsideMenu && !clickedToggle) {
+      navLinks.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Open navigation menu");
+    }
+  });
+}
 
-    window.addEventListener("resize", () => {
-      if (window.innerWidth > 760) {
-        closeMenu();
-      }
-    });
+// Automatically update the copyright year
+const currentYear = document.getElementById("currentYear");
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && navLinks.classList.contains("is-open")) {
-        closeMenu();
-        menuToggle.focus();
-      }
-    });
-  }
+if (currentYear) {
+  currentYear.textContent = new Date().getFullYear();
+}
 
-  // Update the footer year
-  const yearElement = document.getElementById("current-year");
+// Highlight the navigation link for the current section
+const sections = document.querySelectorAll("main section[id]");
+const sectionLinks = document.querySelectorAll('.nav-links a[href^="#"]');
 
-  if (yearElement) {
-    yearElement.textContent = new Date().getFullYear();
-  }
+if ("IntersectionObserver" in window) {
+  const sectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
 
-  // Copy email address
-  const copyButton = document.getElementById("copy-email");
-  const copyStatus = document.getElementById("copy-status");
-  const email = "praveen11991@gmail.com";
+        const currentId = entry.target.id;
 
-  if (copyButton && copyStatus) {
-    copyButton.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(email);
-        copyStatus.textContent = "Email address copied successfully.";
-      } catch {
-        const temporaryInput = document.createElement("textarea");
+        sectionLinks.forEach((link) => {
+          const isCurrent = link.getAttribute("href") === `#${currentId}`;
 
-        temporaryInput.value = email;
-        temporaryInput.setAttribute("readonly", "");
-        temporaryInput.style.position = "fixed";
-        temporaryInput.style.opacity = "0";
+          link.classList.toggle("active", isCurrent);
 
-        document.body.appendChild(temporaryInput);
-        temporaryInput.select();
+          if (isCurrent) {
+            link.setAttribute("aria-current", "location");
+          } else {
+            link.removeAttribute("aria-current");
+          }
+        });
+      });
+    },
+    {
+      rootMargin: "-30% 0px -60% 0px",
+      threshold: 0
+    }
+  );
 
-        const copied = document.execCommand("copy");
-        temporaryInput.remove();
+  sections.forEach((section) => sectionObserver.observe(section));
+}
 
-        copyStatus.textContent = copied
-          ? "Email address copied successfully."
-          : `Email address: ${email}`;
-      }
-    });
-  }
-});
+// Subtle reveal animation for sections and cards
+const revealElements = document.querySelectorAll(
+  ".section-heading, .about-copy, .fact-card, " +
+  ".experience-card, .skill-card, .project-card, " +
+  ".education-card, .contact-panel"
+);
+
+if (
+  "IntersectionObserver" in window &&
+  !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+) {
+  revealElements.forEach((element) => element.classList.add("reveal"));
+
+  document.documentElement.classList.add("js-ready");
+
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.12
+    }
+  );
+
+  revealElements.forEach((element) => revealObserver.observe(element));
+}
